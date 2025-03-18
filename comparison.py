@@ -52,7 +52,7 @@ def get_modules_list(ssh_client: paramiko.SSHClient) -> List[ModuleInfo]:
     modules = []
     
     # Получение списка модулей
-    stdin, stdout, stderr = ssh_client.exec_command("module avail -t 2>&1 | grep -v '^-\\|^$\\|: '")
+    stdin, stdout, stderr = ssh_client.exec_command("ml --terse avail 2>&1 | grep -E '/[^/]+$' | grep -v ':$'")
     module_names = [line.strip() for line in stdout.readlines()]
     
     for full_name in module_names:
