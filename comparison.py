@@ -56,19 +56,19 @@ def get_modules_list(ssh_client: paramiko.SSHClient) -> List[ModuleInfo]:
     module_names = [line.strip() for line in stdout.readlines()]
     
     for full_name in module_names:
-        # For each module, request information about build time
-        # Assuming build time can be found in module metadata or in the filesystem
-        cmd = f"stat -c '%z' $(module show {full_name} 2>&1 | grep -o '/.*\\.lua' | head -1) 2>/dev/null || echo 'Unknown'"
+        # For each module, get the UNIX timestamp (independent of time zone)
+        cmd = f"stat -c '%Y' $(module show {full_name} 2>&1 | grep -o '/.*\\.lua' | head -1) 2>/dev/null || echo 'Unknown'"
         stdin, stdout, stderr = ssh_client.exec_command(cmd)
-        build_time_str = stdout.read().decode().strip()
+        timestamp_str = stdout.read().decode().strip()
         
         try:
-            if build_time_str != 'Unknown':
-                build_time = datetime.datetime.strptime(build_time_str.split('.')[0], '%Y-%m-%d %H:%M:%S')
+            if timestamp_str != 'Unknown':
+                # Convert UNIX timestamp to datetime in UTC
+                build_time = datetime.datetime.fromtimestamp(int(timestamp_str), tz=datetime.timezone.utc)
             else:
-                build_time = datetime.datetime(1970, 1, 1)  # If build time is unknown
+                build_time = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
         except ValueError:
-            build_time = datetime.datetime(1970, 1, 1)
+            build_time = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
         
         # Split full module name into name and version
         parts = full_name.split('/')
